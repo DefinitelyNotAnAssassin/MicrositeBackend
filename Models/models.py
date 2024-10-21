@@ -1,18 +1,17 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 
+DEPARTMENT_CHOICES = [
+    ('SCMCS', 'SCMCS'),
+    ('SNAHS', 'SNAHS'),
+    ('SMLS', 'SMLS'),
+    ('SITHM', 'SITHM'),
+    ('SASE', 'SASE'),
+]
 
-class Student(models.Model):
-    CURRICULUM_YEAR_CHOICES = [
-        ('2016-2017', '2016-2017'),
-        ('2017-2018', '2017-2018'),
-        ('2018-2019', '2018-2019'),
-        ('2023-2024', '2023-2024'),
-        ('2024-2025', '2024-2025'),
-    ]
-    
-    PROGRAM_CHOICES = [
+PROGRAM_CHOICES = [
     ('ABCOM', 'ABCOM'),
     ('ABMMA', 'ABMMA'),
     ('AHM', 'AHM'),
@@ -76,26 +75,86 @@ class Student(models.Model):
     ('SMAWNCII', 'SMAWNCII'),
     ('VACOMLIT', 'VACOMLIT'),
     ('WSA', 'WSA'),
+]
+
+CURRICULUM_YEAR_CHOICES = [
+        ('2016-2017', '2016-2017'),
+        ('2017-2018', '2017-2018'),
+        ('2018-2019', '2018-2019'),
+        ('2019-2020', '2019-2020'),
+        ('2020-2021', '2020-2021'),
+        ('2021-2022', '2021-2022'),
+        ('2022-2023', '2022-2023'),
+        ('2023-2024', '2023-2024'),
+        ('2024-2025', '2024-2025'),
     ]
-   
-    name = models.CharField(max_length=100)
-    student_number = models.CharField(max_length=100) 
-    email = models.EmailField(max_length=100, blank = True, null = True) 
-    phone_number = models.CharField(max_length=100, blank = True, null = True)
-    address = models.CharField(max_length=100, blank = True, null = True)
-    course_status = models.JSONField(blank = True, null = True)
-    curriculum_year = models.CharField(max_length=100, choices = CURRICULUM_YEAR_CHOICES, default = '2024-2025')
-    program = models.CharField(max_length=64, choices = PROGRAM_CHOICES, default = 'BSIT') 
+
+STUDENT_STATUS_CHOICES = [ 
+    ('Enrolled', 'Enrolled'),
+    ('Graduated', 'Graduated'),
+    ('Dropped', 'Dropped'),
+    ('Transferred', 'Transferred'),
+    ('Failed', 'Failed'),
+    ('Incomplete', 'Incomplete'),
+]
+class Account(AbstractUser):
+    department = models.CharField(max_length=32, choices=DEPARTMENT_CHOICES, default='SCMCS')
 
     def __str__(self):
-        return self.name
+        return self.username
+
+class Student(models.Model):
     
+    name = models.CharField(max_length=100)
+    student_number = models.CharField(max_length=100)
+    email = models.EmailField(max_length=100, blank=True, null=True)
+    phone_number = models.CharField(max_length=100, blank=True, null=True)
+    address = models.CharField(max_length=100, blank=True, null=True)
+    course_status = models.JSONField(blank=True, null=True)
+    curriculum_year = models.CharField(max_length=100, choices=CURRICULUM_YEAR_CHOICES, default='2024-2025')
+    program = models.CharField(max_length=64, choices=PROGRAM_CHOICES, default='BSIT')
+    student_status = models.CharField(max_length=100, default='Enrolled', choices = STUDENT_STATUS_CHOICES)
+    
+    def save(self, *args, **kwargs):
+        # Check if the instance already exists in the database
+        if self.pk:
+            # Get the current instance from the database
+            current_instance = Student.objects.get(pk=self.pk)
+            self.check_graduation_status()
+
+        super(Student, self).save(*args, **kwargs)
+        
+        
+        
+    def check_graduation_status(self):
+        # Check if all the subjects in the curriculum have been passed
+        if all(status.lower() == 'passed' for status in self.course_status.values()):
+            self.student_status = 'Graduated'
+        elif any(status.lower() == 'failed' for status in self.course_status.values()):
+            self.student_status = 'Failed'
+        elif any(status.lower() == 'incomplete' for status in self.course_status.values()):
+            self.student_status = 'Incomplete'
+        else:
+            self.student_status = 'Enrolled'
     
 
+
+    
+    def __str__(self):
+        return self.name
+
+class Article(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    author = models.ForeignKey(Account, on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
 
 class Curriculum(models.Model):
-    year = models.CharField(max_length=32, choices=Student.CURRICULUM_YEAR_CHOICES, unique=True)
-    program = models.CharField(max_length=32, choices=Student.PROGRAM_CHOICES)
+    year = models.CharField(max_length=32, choices=CURRICULUM_YEAR_CHOICES, unique=True)
+    program = models.CharField(max_length=32, choices=PROGRAM_CHOICES)
     data = models.JSONField()
 
     def __str__(self):

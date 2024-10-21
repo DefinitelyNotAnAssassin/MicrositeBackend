@@ -26,7 +26,8 @@ SECRET_KEY = "django-insecure-edoywyqo+zt!^a85ap!%9a#bv1jp%_ma@ah+3mkacir_v9k#hk
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'sdcamicrosite.pythonanywhere.com'
+    'sdcamicrosite.pythonanywhere.com', 
+    '127.0.0.1'
     ]
 
 
@@ -56,6 +57,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
+AUTH_USER_MODEL = 'Models.Account'
 CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "backend.urls"
