@@ -15,6 +15,7 @@ urlpatterns = [
                path('getYearlyPerformance', views.get_yearly_performance, name='get_yearly_performance'),
                path('getProgramHighlights', views.get_program_highlights, name='get_program_highlights'),
                path('getProgramArticles', views.get_program_articles, name='get_program_articles'),
+               path('getArticle', views.get_article, name='get_article'),
                path('verifyAccount', views.verify_account, name='verify_account'),
                path('verifyAuth', views.verify_auth, name='verify_auth'),
                path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

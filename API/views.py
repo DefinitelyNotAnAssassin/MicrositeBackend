@@ -144,9 +144,12 @@ def get_program_articles(request):
             articles = Article.objects.filter(program = program, category=category).order_by('-date')[:3]
     elif program:
         articles = Article.objects.filter(program = program).exclude(category__in = ['Announcements', 'Student Activities']).order_by('-date')[:3] 
+    else: 
+        articles = Article.objects.all().order_by('-date')[:3]
     data = [] 
     for article in articles:
         data.append({
+            'id': article.pk,   
             'title': article.title,
             'content': article.content,
             'image': article.image.url,
@@ -155,6 +158,19 @@ def get_program_articles(request):
             'date': article.date,
         })
     return JsonResponse(data, safe=False)
+
+def get_article(request):
+    article_id = request.GET.get('id', None)
+    article = get_object_or_404(Article, id=article_id)
+    data = {
+        'title': article.title,
+        'content': article.content,
+        'image': article.image.url,
+        'author': article.author.first_name + ' ' + article.author.last_name,
+        'category': article.category,
+        'date': article.date,
+    }
+    return JsonResponse(data)
 
 @csrf_exempt    
 def verify_account(request):
