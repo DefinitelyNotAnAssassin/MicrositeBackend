@@ -1,10 +1,13 @@
-from django.shortcuts import render
 from django.http import JsonResponse
-from Models.models import Student, Curriculum
+from Models.models import Student, Curriculum, ProgramHighlight, Article, Account
 from django.views.decorators.csrf import csrf_exempt
-import json 
 from django.db.models import Count, Case, When, IntegerField
-
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import login as login_user, authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+import json
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 
@@ -52,7 +55,6 @@ def get_program_data(request):
     
     return JsonResponse(data)
 
-
 def get_yearly_performance(request):
     program = request.GET.get('program', None)
     performance_data = []
@@ -74,6 +76,7 @@ def get_yearly_performance(request):
         total_students = students[0]['number_of_students']
         pass_rate = students[0]['graduated'] / total_students * 100
         fail_rate = students[0]['failed'] / total_students * 100
+        enrolled_rate = students[0]['enrolled'] / total_students * 100
         incomplete_rate = students[0]['incomplete'] / total_students * 100
         
 
@@ -83,12 +86,12 @@ def get_yearly_performance(request):
             'total_students': total_students,
             'pass_rate': pass_rate,
             'fail_rate': fail_rate,
+            'enrolled_rate': enrolled_rate,
             'incomplete_rate': incomplete_rate,
         })
     
 
     return JsonResponse(performance_data, safe=False)
-
 
 def get_curriculum(request):
     curriculum = Curriculum.objects.filter(program='BSIT').order_by('year')
@@ -114,3 +117,78 @@ def set_curriculum_status(request):
         student.save()
         print(data) 
         return JsonResponse({'message': 'success'})
+    
+
+def get_program_highlights(request):    
+    program = request.GET.get('program', None)
+    program_highlights = ProgramHighlight.objects.filter(program=program).values()
+    data = [] 
+    for highlight in program_highlights:
+        data.append({
+            'title': highlight['title'],
+            'content': highlight['content'],
+            'image': highlight['image'],
+        })
+    return JsonResponse(data, safe=False)
+
+
+
+
+def get_program_articles(request):
+    program = request.GET.get('program', None)
+    category = request.GET.get('category', None) 
+    if program and category:
+        if category == 'all': 
+            articles = Article.objects.filter(program = program).order_by('-date')
+        else:
+            articles = Article.objects.filter(program = program, category=category).order_by('-date')[:3]
+    elif program:
+        articles = Article.objects.filter(program = program).exclude(category__in = ['Announcements', 'Student Activities']).order_by('-date')[:3] 
+    data = [] 
+    for article in articles:
+        data.append({
+            'title': article.title,
+            'content': article.content,
+            'image': article.image.url,
+            'author': article.author.first_name + ' ' + article.author.last_name,
+            'category': article.category,
+            'date': article.date,
+        })
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt    
+def verify_account(request):
+    if request.method == 'POST':
+        data = request.body 
+        data = data.decode('utf-8') 
+        json_data = json.loads(data) 
+        username = json_data['username'] 
+        password = json_data['password']
+        account = authenticate(username=username, password=password)
+        
+        if account:
+            login_user(request, account)
+            refresh = RefreshToken.for_user(account)
+            
+            return JsonResponse({'status': 'success',
+                                 'refresh': str(refresh),
+                                 'access': str(refresh.access_token)})
+        else:
+            return JsonResponse({'status': 'failed'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verify_auth(request): 
+    if request.user and request.user.is_authenticated:
+        data = {
+            'firstname': request.user.first_name,
+            'lastname': request.user.last_name,
+            'role': request.user.role,
+            'program': request.user.program,
+            'department': request.user.department,
+            'email': request.user.email
+        }
+        return JsonResponse(data)
+    else:
+        return JsonResponse({'status': 'unauthorized'})
