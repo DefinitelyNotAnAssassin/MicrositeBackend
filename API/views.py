@@ -171,6 +171,7 @@ def verify_account(request):
             refresh = RefreshToken.for_user(account)
             
             return JsonResponse({'status': 'success',
+                                 'role': account.role,
                                  'refresh': str(refresh),
                                  'access': str(refresh.access_token)})
         else:
