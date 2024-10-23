@@ -11,10 +11,13 @@ from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_students(request):
     students = Student.objects.all()    
     data = list(students.values())
     return JsonResponse(data, safe=False)
+
 
 def get_student(request, student_number):
     student = Student.objects.get(student_number=student_number)
@@ -105,6 +108,8 @@ def get_curriculum(request):
     return JsonResponse(data, safe=False)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 @csrf_exempt
 def set_curriculum_status(request):
     if request.method == 'POST':
@@ -118,6 +123,8 @@ def set_curriculum_status(request):
         print(data) 
         return JsonResponse({'message': 'success'})
     
+
+
 
 def get_program_highlights(request):    
     program = request.GET.get('program', None)
