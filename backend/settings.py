@@ -93,7 +93,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ORIGIN_WHITELIST = [ 
                              
         'http://localhost:3000',
-        'https://programmicrosite.vercel.app/',
+        'https://programmicrosite.vercel.app',
 ]
 
 ROOT_URLCONF = "backend.urls"
