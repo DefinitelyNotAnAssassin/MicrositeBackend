@@ -128,16 +128,12 @@ def set_curriculum_status(request):
     
 
 
-
-from django.http import JsonResponse
-from .models import ProgramHighlight, Article, DEPARTMENT_PROGRAMS
-
 def get_program_highlights(request):
     program = request.GET.get('program', None)
     filters = {}
     
     if program:
-        if program in DEPARTMENT_PROGRAMS:
+        if program.upper() in DEPARTMENT_PROGRAMS:
             filters['department'] = program
         else:
             filters['program'] = program
