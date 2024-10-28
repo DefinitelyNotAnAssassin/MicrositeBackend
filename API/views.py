@@ -133,10 +133,13 @@ def get_program_highlights(request):
         filters['program'] = program
     if department:
         filters['department'] = department
+        
+    print(filters)
     
     program_highlights = ProgramHighlight.objects.filter(**filters).values('title', 'content', 'image')
     
     data = list(program_highlights)
+
     return JsonResponse(data, safe=False)
 
 
@@ -153,16 +156,13 @@ def get_program_articles(request):
     if category and category != 'all':
         filters['category'] = category
     
-    articles = Article.objects.filter(**filters).exclude(category__in=['Announcements', 'Student Activities']).order_by('-date')
-    
-    if not category or category == 'all':
-        articles = articles[:3]
+    articles = Article.objects.filter(**filters).order_by('-date')
     
     data = [{
         'id': article.pk,
         'title': article.title,
         'content': article.content,
-        'image': article.image.url,
+        'image': article.image.url if article.image else None,
         'author': f"{article.author.first_name} {article.author.last_name}",
         'category': article.category,
         'date': article.date,
