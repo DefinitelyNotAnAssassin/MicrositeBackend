@@ -85,7 +85,16 @@ MIDDLEWARE = [
 
 
 AUTH_USER_MODEL = 'Models.Account'
-CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+# specify the URL where the frontend is hosted   
+
+CORS_ORIGIN_WHITELIST = [ 
+                             
+        'http://localhost:3000',
+        'https://programmicrosite.vercel.app/',
+]
 
 ROOT_URLCONF = "backend.urls"
 

@@ -60,7 +60,7 @@ class Student(models.Model):
 class Article(models.Model):
     title = models.CharField(max_length=256)
     content = models.TextField()
-    image = models.ImageField(upload_to=get_article_media_directory, blank=True, null=True)
+    image = models.ImageField(upload_to=get_article_media_directory, blank=True, null=True, default='default.jpg')
     author = models.ForeignKey(Account, on_delete=models.CASCADE)
     category = models.CharField(max_length=256, choices = CATEGORY_CHOICES, default='General')
     date = models.DateTimeField(auto_now_add=True)
