@@ -11,6 +11,9 @@ from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 
+DEPARTMENT_PROGRAMS = ['SCMCS', 'SNAHS', 'SMLS', 'SASE', 'SIHTM']
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_students(request):
@@ -126,46 +129,62 @@ def set_curriculum_status(request):
 
 
 
-def get_program_highlights(request):    
+from django.http import JsonResponse
+from .models import ProgramHighlight, Article, DEPARTMENT_PROGRAMS
+
+def get_program_highlights(request):
     program = request.GET.get('program', None)
-    program_highlights = ProgramHighlight.objects.filter(program=program).values()
-    data = [] 
-    for highlight in program_highlights:
-        data.append({
-            'title': highlight['title'],
-            'content': highlight['content'],
-            'image': highlight['image'],
-        })
+    filters = {}
+    
+    if program:
+        if program in DEPARTMENT_PROGRAMS:
+            filters['department'] = program
+        else:
+            filters['program'] = program
+    
+    highlights = ProgramHighlight.objects.filter(**filters).order_by('-date')
+    data = [{
+        'id': highlight.pk,
+        'title': highlight.title,
+        'content': highlight.content,
+        'image': highlight.image.url,
+        'date': highlight.date
+    } for highlight in highlights]
+    
     return JsonResponse(data, safe=False)
-
-
-
 
 def get_program_articles(request):
-    program = request.GET.get('program', None)
-    category = request.GET.get('category', None) 
-    if program and category:
-        if category == 'all': 
-            articles = Article.objects.filter(program = program).order_by('-date')
+    program = request.GET.get('program')
+    category = request.GET.get('category')
+    
+    filters = {}
+    if program:
+        if program in DEPARTMENT_PROGRAMS:
+            filters['department'] = program
         else:
-            articles = Article.objects.filter(program = program, category=category).order_by('-date')[:3]
-    elif program:
-        articles = Article.objects.filter(program = program).exclude(category__in = ['Announcements', 'Student Activities']).order_by('-date')[:3] 
-    else: 
-        articles = Article.objects.all().order_by('-date')[:3]
-    data = [] 
-    for article in articles:
-        data.append({
-            'id': article.pk,   
-            'title': article.title,
-            'content': article.content,
-            'image': article.image.url,
-            'author': article.author.first_name + ' ' + article.author.last_name,
-            'category': article.category,
-            'date': article.date,
-        })
+            filters['program'] = program
+    if category and category != 'all':
+        filters['category'] = category
+    
+    articles = Article.objects.filter(**filters).order_by('-date')
+    
+    if program in DEPARTMENT_PROGRAMS:
+        articles = articles.exclude(category__in=['Announcements', 'Student Activities'])
+    
+    if not category or category == 'all':
+        articles = articles[:3]
+    
+    data = [{
+        'id': article.pk,
+        'title': article.title,
+        'content': article.content,
+        'image': article.image.url,
+        'author': f"{article.author.first_name} {article.author.last_name}",
+        'category': article.category,
+        'date': article.date,
+    } for article in articles]
+    
     return JsonResponse(data, safe=False)
-
 def get_article(request):
     article_id = request.GET.get('id', None)
     article = get_object_or_404(Article, id=article_id)
