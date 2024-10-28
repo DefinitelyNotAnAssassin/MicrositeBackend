@@ -11,9 +11,6 @@ from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 
-DEPARTMENT_PROGRAMS = ['SCMCS', 'SNAHS', 'SMLS', 'SASE', 'SIHTM']
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_students(request):
@@ -127,45 +124,36 @@ def set_curriculum_status(request):
         return JsonResponse({'message': 'success'})
     
 
-
 def get_program_highlights(request):
-    program = request.GET.get('program', None)
+    program = request.GET.get('program')
+    department = request.GET.get('department')
+    
     filters = {}
-    
     if program:
-        if program.upper() in DEPARTMENT_PROGRAMS:
-            filters['department'] = program
-        else:
-            filters['program'] = program
+        filters['program'] = program
+    if department:
+        filters['department'] = department
     
-    highlights = ProgramHighlight.objects.filter(**filters).order_by('-date')
-    data = [{
-        'id': highlight.pk,
-        'title': highlight.title,
-        'content': highlight.content,
-        'image': highlight.image.url,
-        'date': highlight.date
-    } for highlight in highlights]
+    program_highlights = ProgramHighlight.objects.filter(**filters).values('title', 'content', 'image')
     
+    data = list(program_highlights)
     return JsonResponse(data, safe=False)
+
 
 def get_program_articles(request):
     program = request.GET.get('program')
+    department = request.GET.get('department')
     category = request.GET.get('category')
     
     filters = {}
     if program:
-        if program in DEPARTMENT_PROGRAMS:
-            filters['department'] = program
-        else:
-            filters['program'] = program
+        filters['program'] = program
+    if department:
+        filters['department'] = department
     if category and category != 'all':
         filters['category'] = category
     
-    articles = Article.objects.filter(**filters).order_by('-date')
-    
-    if program in DEPARTMENT_PROGRAMS:
-        articles = articles.exclude(category__in=['Announcements', 'Student Activities'])
+    articles = Article.objects.filter(**filters).exclude(category__in=['Announcements', 'Student Activities']).order_by('-date')
     
     if not category or category == 'all':
         articles = articles[:3]
@@ -181,6 +169,7 @@ def get_program_articles(request):
     } for article in articles]
     
     return JsonResponse(data, safe=False)
+
 def get_article(request):
     article_id = request.GET.get('id', None)
     article = get_object_or_404(Article, id=article_id)
