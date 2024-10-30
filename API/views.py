@@ -21,6 +21,7 @@ def get_students(request):
 
 def get_student(request, student_number):
     student = Student.objects.get(student_number=student_number)
+    
     data = {
         'name': student.name,
         'student_number': student.student_number,
@@ -32,8 +33,10 @@ def get_student(request, student_number):
     }
     return JsonResponse(data)
 
+@api_view(['GET'])  
+@permission_classes([IsAuthenticated])
 def get_program_data(request):
-    program = request.GET.get('program', None)
+    program = request.user.program
     
     if program:
         students = Student.objects.filter(program=program)
@@ -58,6 +61,8 @@ def get_program_data(request):
     
     return JsonResponse(data)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated]) 
 def get_yearly_performance(request):
     program = request.GET.get('program', None)
     performance_data = []
@@ -96,6 +101,8 @@ def get_yearly_performance(request):
 
     return JsonResponse(performance_data, safe=False)
 
+@api_view(['GET'])  
+@permission_classes([IsAuthenticated])  
 def get_curriculum(request):
     curriculum = Curriculum.objects.filter(program='BSIT').order_by('year')
     data = [] 
@@ -123,7 +130,6 @@ def set_curriculum_status(request):
         print(data) 
         return JsonResponse({'message': 'success'})
     
-
 def get_program_highlights(request):
     program = request.GET.get('program')
     department = request.GET.get('department')
@@ -143,6 +149,7 @@ def get_program_highlights(request):
     return JsonResponse(data, safe=False)
 
 
+@api_view(['GET'])
 def get_program_articles(request):
     program = request.GET.get('program')
     department = request.GET.get('department')
@@ -155,6 +162,11 @@ def get_program_articles(request):
         filters['department'] = department
     if category and category != 'all':
         filters['category'] = category
+        
+        
+    if request.user.is_authenticated:
+        filters['program'] = request.user.program   
+        
     
     articles = Article.objects.filter(**filters).order_by('-date')
     
@@ -165,8 +177,12 @@ def get_program_articles(request):
         'image': article.image.url if article.image else None,
         'author': f"{article.author.first_name} {article.author.last_name}",
         'category': article.category,
+        'program': article.program, 
+        'department': article.department,   
         'date': article.date,
     } for article in articles]
+    
+    
     
     return JsonResponse(data, safe=False)
 
@@ -198,7 +214,14 @@ def verify_account(request):
             refresh = RefreshToken.for_user(account)
             
             return JsonResponse({'status': 'success',
-                                 'role': account.role,
+                                 'account': {
+                                        'firstname': account.first_name,
+                                        'lastname': account.last_name,
+                                        'role': account.role,
+                                        'program': account.program,
+                                        'department': account.department,
+                                        'email': account.email
+                                 },
                                  'refresh': str(refresh),
                                  'access': str(refresh.access_token)})
         else:
