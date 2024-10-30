@@ -102,7 +102,7 @@ def get_yearly_performance(request):
     return JsonResponse(performance_data, safe=False)
 
 @api_view(['GET'])  
-@permission_classes([IsAuthenticated])  
+
 def get_curriculum(request):
     curriculum = Curriculum.objects.filter(program='BSIT').order_by('year')
     data = [] 
