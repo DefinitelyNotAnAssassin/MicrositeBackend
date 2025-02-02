@@ -20,4 +20,8 @@ urlpatterns = [
                path('verifyAuth', views.verify_auth, name='verify_auth'),
                path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
                path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+               path('getProgramUsers', views.get_program_users, name='get_program_users'),
+               path('articles', views.create_article, name='create_article'),
+               path('articles/<int:article_id>', views.update_article, name='update_article'),
+               path('articles/<int:article_id>/delete', views.delete_article, name='delete_article'),
             ]

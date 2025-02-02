@@ -58,13 +58,13 @@ def get_program_data(request):
                 'incomplete': student['incomplete'], 
                 'number_of_students': student['number_of_students']
             } for student in students}
-    
+    print("data", data)
     return JsonResponse(data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated]) 
 def get_yearly_performance(request):
-    program = request.GET.get('program', None)
+    program = request.user.program
     performance_data = []
 
     # Get all curriculum years for the program
@@ -98,6 +98,8 @@ def get_yearly_performance(request):
             'incomplete_rate': incomplete_rate,
         })
     
+    
+    print(performance_data) 
 
     return JsonResponse(performance_data, safe=False)
 
@@ -243,3 +245,74 @@ def verify_auth(request):
         return JsonResponse(data)
     else:
         return JsonResponse({'status': 'unauthorized'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_program_users(request):
+    program = request.user.program
+    users = Account.objects.filter(program=program).values('id', 'first_name', 'last_name')
+    return JsonResponse(list(users), safe=False)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_article(request):
+    try:
+        data = request.POST
+        image = request.FILES.get('image')
+        
+        # Set the program to the user's program if not specified
+        program = data.get('program', request.user.program)
+        
+        article = Article.objects.create(
+            title=data['title'],
+            content=data['content'],
+            category=data['category'],
+            program=program,
+            department=data['department'],
+            author_id=data['author'],
+            image=image
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'id': article.pk,
+            'title': article.title,
+            'content': article.content,
+            'image': article.image.url if article.image else None,
+            'author': f"{article.author.first_name} {article.author.last_name}",
+            'category': article.category,
+            'program': article.program,
+            'department': article.department,
+            'date': article.date,
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_article(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    data = request.POST
+    image = request.FILES.get('image')
+    
+    article.title = data['title']
+    article.content = data['content']
+    article.category = data['category']
+    article.program = data['program']
+    article.department = data['department']
+    article.author_id = data['author']
+    if image:
+        article.image = image
+    article.save()
+    
+    return JsonResponse({'status': 'success'})
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_article(request, article_id):
+    article = get_object_or_404(Article, id=article_id)
+    article.delete()
+    return JsonResponse({'status': 'success'})
